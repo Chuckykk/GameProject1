@@ -10,71 +10,71 @@ public class CharacterMovement2D : MonoBehaviour
     [SerializeField] private bool useRawInput = true;           
 
     [Header("Aiming")]                                           
-    [SerializeField] private Transform aimPivot = null;          
-    [SerializeField] private bool rotateWholeBody = false;       
-    [SerializeField] private float aimOffsetDegrees = -90f;      
+    [SerializeField] private Transform aimPivot = null;          // // (Valfritt) vapenpivot som roteras mot musen
+    [SerializeField] private bool rotateWholeBody = false;       // // Om true roteras hela spelaren
+    [SerializeField] private float aimOffsetDegrees = -90f;      // // Kompensera sprite-riktning (t.ex. om "upp" är 90° fel)
 
     [Header("Visual")]                                           
     [SerializeField] private Transform spriteRoot = null;        
     [SerializeField] private bool flipOnMouseX = true;         
 
   
-    private Rigidbody2D _rb;                                     
-    private Camera _cam;                                         
-    private Vector2 _moveInput;                                  
-    private bool _canMove = true;                               
+    private Rigidbody2D _rb;                                     // // Referens till Rigidbodyn (prestanda)
+    private Camera _cam;                                         // // Huvudkamera för skärm->värld
+    private Vector2 _moveInput;                                  // // Senaste input (Update)
+    private bool _canMove = true;                                // // För att enkelt låsa rörelsen vid paus/game over
 
  
-    public Vector2 MoveInput => _moveInput;                     
-    public float Speed => moveSpeed;                             
+    public Vector2 MoveInput => _moveInput;                      // // Ger UI/animationer tillgång att läsa input
+    public float Speed => moveSpeed;                             // // Exponera bara läsning av hastigheten
 
     private void Awake()
     {
-        _rb = GetComponent<Rigidbody2D>();                     
-        _rb.freezeRotation = true;                               
-        _cam = Camera.main;                                    
+        _rb = GetComponent<Rigidbody2D>();                       // // Cacha rigidbody
+        _rb.freezeRotation = true;                               // // Lås Z-rotation för 2D
+        _cam = Camera.main;                                      // // Cacha kamera
     }
 
     private void Update()
     {
-        if (_canMove)                                           
-            ReadMoveInput();                                     
+        if (_canMove)                                            // // Läs input endast när vi får röra oss
+            ReadMoveInput();                                     // // Tangentbordsinput (WASD/Arrow)
 
-        UpdateAim();                                             
+        UpdateAim();                                             // // Sikta/rotera (får gärna ske även när pausat)
     }
 
     private void FixedUpdate()
     {
-        if (!_canMove) return;                                  
+        if (!_canMove) return;                                   // // Ingen rörelse i paus/game over
 
-
-        
+        // // Direkt och snärtig rörelse: MovePosition (fysikvänligt) utan velocity/acceleration
+        // // Normalisera så diagonal inte blir snabbare, multiplicera med hastighet och fixedDeltaTime
         Vector2 delta = _moveInput.normalized * moveSpeed * Time.fixedDeltaTime; 
-        _rb.MovePosition(_rb.position + delta);                 
+        _rb.MovePosition(_rb.position + delta);                  // // Flytta kroppen ett steg
     }
 
     private void ReadMoveInput()
     {
-       
+        // // Välj mellan rå eller smoothead input – rå ger den snärtiga känslan
         float x = useRawInput ? Input.GetAxisRaw("Horizontal") : Input.GetAxis("Horizontal");
         float y = useRawInput ? Input.GetAxisRaw("Vertical")   : Input.GetAxis("Vertical");
 
-        _moveInput = new Vector2(x, y);                          
+        _moveInput = new Vector2(x, y);                          // // Spara inputvektor
 
-        
+        // // Klipp väldigt små värden (dödzon) så vi inte "kryper" vid analog input
         if (_moveInput.sqrMagnitude < 0.0001f)                   
             _moveInput = Vector2.zero;                           
     }
 
     private void UpdateAim()
     {
-        
+        // // Säkerställ kamera (om du bytt kameror i runtime)
         if (_cam == null) _cam = Camera.main;                    
-        if (_cam == null) return;                                
+        if (_cam == null) return;                                // // Utan kamera kan vi inte sikta korrekt
 
-        
+        // // Skärm -> värld (musens position)
         Vector3 mouseWorld = _cam.ScreenToWorldPoint(Input.mousePosition);
-        mouseWorld.z = 0f;                                       
+        mouseWorld.z = 0f;                                       // // 2D: håll dig på z=0
 
         // // Riktning från spelaren till musen
         Vector2 from = _rb != null ? _rb.position : (Vector2)transform.position;
