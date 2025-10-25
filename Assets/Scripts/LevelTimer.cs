@@ -2,147 +2,188 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.SceneManagement;     // // För Retry/NextRound exempel (ladda scen)
-using TMPro;                           // // För TextMeshPro-timertext
+using UnityEngine.SceneManagement; 
+using TMPro;
+using UnityEngine.UI;
+
 
 public class LevelTimer : MonoBehaviour
 {
     [Header("Timer Settings")]
     [Tooltip("Hur lång rundan är i sekunder.")]
-    public float durationSeconds = 30f;        // // Standard: 30 sek för Level 1
+    public float durationSeconds = 30f;
 
     [Tooltip("Starta timern automatiskt när scenen startar.")]
-    public bool autoStart = true;              // // Praktiskt i Level 1
+    public bool autoStart = true;
+
+    [Header("Round / Level")]
+    [Tooltip("Vilken level som spelas just nu.")]
+    public int currentLevel = 1; // NEW
 
     [Header("References")]
     [Tooltip("TextMeshPro-text som visar nedräkningen.")]
-    public TMP_Text timerLabel;                // // Dra in din TMP-Text här
+    public TMP_Text timerLabel;
 
-    [Tooltip("Din EnemySpawner (eller valfritt spawner script) som ska stoppas vid timeout.")]
-    public MonoBehaviour spawnerToStop;        // // Exempel: EnemySpawner script-komponenten
+    [Tooltip("Din EnemySpawner (eller valfritt spawner script) som ska stoppas vid timeout/död.")]
+    public MonoBehaviour spawnerToStop;
 
     [Tooltip("Panel som visas när rundan är klar (Round End UI).")]
-    public GameObject roundEndPanel;           // // Valfri – visas vid slut
+    public GameObject roundEndPanel;
+
+    [Header("Round End UI (extra info)")]
+    [Tooltip("Textfält där vi skriver 'You died from X' och kvarvarande tid.")]
+    public TMP_Text deathInfoText; // NEW
+    [Tooltip("Ikon för fienden som dödade dig (valfritt).")]
+    public Image killerIcon;       // NEW
 
     [Header("Events (valfria)")]
-    public UnityEvent onRoundStart;            // // Körs när rundan startas
-    public UnityEvent onRoundEnd;              // // Körs när rundan avslutas
+    public UnityEvent onRoundStart;
+    public UnityEvent onRoundEnd;
 
-    // // Internt tillstånd
-    private float timeLeft;                    // // Nedräkning i sekunder
-    private bool isRunning;                    // // Om timern körs just nu
+    // Internt tillstånd
+    private float timeLeft;
+    private bool isRunning;
+
+    // Dödsinfo (för UI)
+    private string lastKillerName = null;  // NEW
+    private Sprite lastKillerSprite = null; // NEW
 
     void Start()
     {
-        // // Dölj RoundEnd-panel i början (om den finns)
         if (roundEndPanel != null)
             roundEndPanel.SetActive(false);
 
-        // // Starta automatiskt om flaggan är satt
         if (autoStart)
             StartRound(durationSeconds);
     }
 
     void Update()
     {
-        // // Räkna bara ner om timern är igång
         if (!isRunning) return;
 
-        // // Ticka ned med verklig speltid
         timeLeft -= Time.deltaTime;
 
-        // // Uppdatera UI-etikett (ex: "29", "28", ...)
         if (timerLabel != null)
         {
-            // // Visa alltid minst 0
             float clamped = Mathf.Max(0f, timeLeft);
             timerLabel.text = Mathf.Ceil(clamped).ToString("0");
         }
 
-        // // När tiden är slut -> avsluta rundan
         if (timeLeft <= 0f)
         {
-            EndRound();
+            // Tiden tog slut (ingen killer)
+            lastKillerName = null;       // NEW
+            lastKillerSprite = null;     // NEW
+            EndRound();                  // visar "time's up"-text
         }
     }
 
-    /// <summary>
-    /// Startar en ny runda och nollställer timer, UI och spawner.
-    /// </summary>
+    /// <summary>Startar en ny runda och nollställer timer, UI och spawner.</summary>
     public void StartRound(float seconds)
     {
-        // // Återställ tid och status
         timeLeft = seconds;
         isRunning = true;
 
-        // // Säkerställ att spelet rullar (om vi pausade tidigare)
         Time.timeScale = 1f;
 
-        // // Dölj RoundEnd-panel
         if (roundEndPanel != null)
             roundEndPanel.SetActive(false);
 
-        // // Starta spawner (om referens finns)
+        // Nollställ dödsinfo varje runda
+        lastKillerName = null;    // NEW
+        lastKillerSprite = null;  // NEW
+        if (deathInfoText != null) deathInfoText.text = ""; // NEW
+        if (killerIcon != null) killerIcon.sprite = null;   // NEW
+        if (killerIcon != null) killerIcon.enabled = false; // NEW
+
         if (spawnerToStop != null)
             spawnerToStop.enabled = true;
 
-        // // Event-hook
         onRoundStart?.Invoke();
     }
 
     /// <summary>
-    /// Avslutar rundan: stoppar spawner, visar UI och pausar spelet.
+    /// Anropa denna när spelaren dör (skickar in vem som dödade + ev. sprite).
     /// </summary>
+    public void EndRoundByDeath(string killerName, Sprite killerSprite = null) // NEW
+    {
+        lastKillerName = killerName;
+        lastKillerSprite = killerSprite;
+        EndRound();
+    }
+
+    /// <summary>Avslutar rundan: stoppar spawner, visar UI, pausar spel – skriver orsak.</summary>
     public void EndRound()
     {
-        // // Stäng av timer
         isRunning = false;
 
-        // // Stoppa spawnern så inga fler fiender kommer
         if (spawnerToStop != null)
             spawnerToStop.enabled = false;
 
-        // // Visa RoundEnd-panel
+        // Sätt texten innan vi visar panelen
+        if (deathInfoText != null) // NEW
+        {
+            string secLeft = Mathf.Max(0f, timeLeft).ToString("F1");
+            if (!string.IsNullOrEmpty(lastKillerName))
+            {
+                // Dödad av fiende
+                deathInfoText.text = $"You died from {lastKillerName}\nIt was {secLeft} sec left of level {currentLevel}";
+            }
+            else
+            {
+                // Tiden tog slut
+                deathInfoText.text = $"Time's up!\nIt was {secLeft} sec left shown when round ended – Level {currentLevel}";
+            }
+        }
+
+        // Sätt ikon om vi har en
+        if (killerIcon != null) // NEW
+        {
+            if (lastKillerSprite != null)
+            {
+                killerIcon.sprite = lastKillerSprite;
+                killerIcon.enabled = true;
+                killerIcon.SetNativeSize(); // valfritt: ta bort om du vill styra storlek i UI
+            }
+            else
+            {
+                killerIcon.enabled = false;
+                killerIcon.sprite = null;
+            }
+        }
+
         if (roundEndPanel != null)
             roundEndPanel.SetActive(true);
 
-        // // Pausa spelet när rundan är klar (kan ändras om du vill)
         Time.timeScale = 0f;
 
-        // // Event-hook
         onRoundEnd?.Invoke();
     }
 
-    /// <summary>
-    /// Hämtar kvarvarande tid (aldrig under 0).
-    /// </summary>
+    /// <summary>Hämtar kvarvarande tid (aldrig under 0).</summary>
     public float GetTimeLeft()
     {
         return Mathf.Max(0f, timeLeft);
     }
 
-    // ======================================================================
-    // // Nedan två metoder är HELT VALFRIA – praktiska knappar för UI.
-    // ======================================================================
+    // ==== Valfria UI-knappar ====
 
-    /// <summary>
-    /// Ladda om nuvarande scen (börja om rundan).
-    /// </summary>
     public void Retry()
     {
-        // // Återställ paus och ladda om aktuell scen
         Time.timeScale = 1f;
         Scene current = SceneManager.GetActiveScene();
         SceneManager.LoadScene(current.buildIndex);
     }
 
-    /// <summary>
-    /// Enkel "Next Round" – startar en ny runda direkt i samma scen.
-    /// </summary>
     public void NextRound()
     {
-        // // Exempel: öka svårighet genom att förkorta tiden lite, eller låt samma 30s
-        float nextSeconds = durationSeconds; // // eller t.ex. durationSeconds - 2f;
+        float nextSeconds = durationSeconds;
         StartRound(nextSeconds);
+    }
+
+    // Hjälpmetod om du vill byta level externt
+    public void SetLevel(int level) // NEW
+    {
+        currentLevel = Mathf.Max(1, level);
     }
 }
