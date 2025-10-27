@@ -127,8 +127,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6822bee518e77cb4185697d8c771539e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 3
-  stopDistance: 0.1
+  moveSpeed: 2.24
+  stopDistance: 0.16
 --- !u!114 &8851206752605571320
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -155,8 +155,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 823d08031a9236440ae432ddef915d34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHP: 3
-  deathVfx: {fileID: 0}
+  maxHP: 2
+  explosionPrefab: {fileID: 8644253600061102363, guid: 3c3672afdc8cae54a9d9ec068150087a, type: 3}
 --- !u!60 &3709347200077610751
 PolygonCollider2D:
   m_ObjectHideFlags: 0
