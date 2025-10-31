@@ -80,6 +80,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -2253911629886400664, guid: f22ab9a95e644d54598a70eaa3a5ca0a, type: 3}
       insertIndex: -1
       addedObject: {fileID: -6193319172952444344}
+    - targetCorrespondingSourceObject: {fileID: -2253911629886400664, guid: f22ab9a95e644d54598a70eaa3a5ca0a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 870253351566983070}
+    - targetCorrespondingSourceObject: {fileID: -2253911629886400664, guid: f22ab9a95e644d54598a70eaa3a5ca0a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -8555495616599394364}
   m_SourcePrefab: {fileID: -8435245712485981826, guid: f22ab9a95e644d54598a70eaa3a5ca0a, type: 3}
 --- !u!1 &6433306169880408914 stripped
 GameObject:
@@ -161,10 +167,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 2
-  stopDistance: 6
+  stopDistance: 4
   projectilePrefab: {fileID: 2218735182413335253, guid: 1d89e39e13a8b8348a1901a5e39a4747, type: 3}
   fireRate: 2
-  projectileSpeed: 6
+  projectileSpeed: 8
 --- !u!114 &-6193319172952444344
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -177,5 +183,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 823d08031a9236440ae432ddef915d34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHP: 3
+  maxHP: 2
   explosionPrefab: {fileID: 8644253600061102363, guid: 3c3672afdc8cae54a9d9ec068150087a, type: 3}
+--- !u!114 &870253351566983070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6433306169880408914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c025a13c324281243aae1acdde2cf88f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  flashColor: {r: 1, g: 0, b: 0, a: 1}
+  flashDuration: 0.1
+  useMaterialInstance: 1
+--- !u!114 &-8555495616599394364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6433306169880408914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d01999a3014cc84e8ba1dba864cd62c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  contactDamage: 1
+  hitCooldown: 0.4

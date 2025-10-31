@@ -9,128 +9,83 @@ using UnityEngine.UI;
 public class LevelTimer : MonoBehaviour
 {
     [Header("Timer Settings")]
-    [Tooltip("Hur lång rundan är i sekunder.")]
     public float durationSeconds = 30f;
-
-    [Tooltip("Starta timern automatiskt när scenen startar.")]
     public bool autoStart = true;
 
     [Header("Round / Level")]
-    [Tooltip("Vilken level som spelas just nu.")]
     public int currentLevel = 1;
 
     [Header("References")]
-    [Tooltip("TextMeshPro-text som visar nedräkningen.")]
     public TMP_Text timerLabel;
-
-    [Tooltip("Din EnemySpawner (eller valfritt spawner script) som ska stoppas vid timeout/död.")]
     public MonoBehaviour spawnerToStop;
 
-    [Tooltip("Panel som visar rundslut (både vinst/död).")]
-    public GameObject roundEndPanel;
+    [Header("WIN Panel (RoundEndPanel)")]
+    [Tooltip("Panel som visas när rundan KLARAS.")]
+    public GameObject winPanel;                          // <- NYTT namn
+    public TMP_Text winHeader;                           // t.ex. "Round Complete"
+    public TMP_Text winInfoText;                         // valfritt
+    public GameObject winNextButton;                     // "Next Round"-knapp
 
-    [Header("Round End UI (innehåll i panelen)")]
-    [Tooltip("Rubrik – t.ex. 'Round Complete' eller 'You Died' (valfritt).")]
-    public TMP_Text roundEndHeader;            // NEW
-    [Tooltip("Textfält där vi skriver detaljer – t.ex. kvarvarande tid, level, killer, osv.")]
-    public TMP_Text deathInfoText;
-    [Tooltip("Ikon för fienden som dödade dig (valfritt).")]
-    public Image killerIcon;
+    [Header("DEATH Panel (RoundDeathPanel)")]
+    [Tooltip("Panel som visas när spelaren DÖR.")]
+    public GameObject deathPanel;                        // <- separat panel
+    public TMP_Text deathHeader;                         // t.ex. "You Died"
+    public TMP_Text deathInfoText;                       // "Killed by X"
+    public Image deathKillerIcon;                        // valfritt
+    public GameObject deathRetryButton;                  // "Retry"-knapp
 
-    [Header("Round End Buttons (visa/dölj)")]
-    public GameObject nextRoundButton;         // NEW (visas vid vinst)
-    public GameObject retryButton;             // NEW (visas vid död)
-
-    [Header("Player Reset (valfritt men rekommenderat)")]
-    [Tooltip("Dra in din PlayerHealth2D så vi kan resetta HP mellan rundor.")]
-    public PlayerHealth2D playerHealth;        // NEW
-    [Tooltip("Taggen som alla fiender har i scenen.")]
-    public string enemyTag = "Enemy";          // NEW
+    [Header("Player Reset (rek)")]
+    public PlayerHealth2D playerHealth;
+    public string enemyTag = "Enemy";
 
     [Header("Events (valfria)")]
     public UnityEvent onRoundStart;
     public UnityEvent onRoundEnd;
 
-    // Internt tillstånd
     private float timeLeft;
     private bool isRunning;
-
-    // Dödsinfo (för UI)
     private string lastKillerName = null;
     private Sprite lastKillerSprite = null;
 
-    private bool EndedByDeath => !string.IsNullOrEmpty(lastKillerName); // NEW
-
-    void Start()
+    private void Start()
     {
-        if (roundEndPanel != null) roundEndPanel.SetActive(false);
+        SafeSetActive(winPanel, false);
+        SafeSetActive(deathPanel, false);
 
-        if (autoStart)
-            StartRound(durationSeconds);
-        else
-            PrepareIdleTimer();
+        if (autoStart) StartRound(durationSeconds);
+        else { isRunning = false; timeLeft = durationSeconds; UpdateTimerLabel(); }
     }
 
-    void Update()
+    private void Update()
     {
         if (!isRunning) return;
 
-        // Om spelet är pausat ska timern inte tappa tid
-        float dt = (Time.timeScale > 0f) ? Time.deltaTime : 0f;  // NEW
+        float dt = (Time.timeScale > 0f) ? Time.deltaTime : 0f;
         timeLeft -= dt;
 
-        if (timerLabel != null)
-        {
-            float clamped = Mathf.Max(0f, timeLeft);
-            timerLabel.text = Mathf.Ceil(clamped).ToString("0");
-        }
+        UpdateTimerLabel();
 
         if (timeLeft <= 0f)
         {
-            // Tiden tog slut (vinst; ingen killer)
+            // Vinst (timer tog slut)
             lastKillerName = null;
             lastKillerSprite = null;
-            EndRound();
+            EndRound(); // visar WIN-panel
         }
     }
 
-    private void PrepareIdleTimer() // NEW
-    {
-        isRunning = false;
-        timeLeft = durationSeconds;
-        UpdateTimerLabel();
-    }
+    // ========= API =========
 
-    private void UpdateTimerLabel() // NEW
-    {
-        if (timerLabel == null) return;
-        int t = Mathf.CeilToInt(Mathf.Max(0f, timeLeft));
-        timerLabel.text = t.ToString();
-    }
-
-    /// <summary>Startar en ny runda och nollställer timer, UI och spawner.</summary>
     public void StartRound(float seconds)
     {
-        // UI state
-        if (roundEndPanel != null) roundEndPanel.SetActive(false);
-        ShowButton(nextRoundButton, false);  // NEW
-        ShowButton(retryButton, false);      // NEW
+        // Stäng paneler
+        SafeSetActive(winPanel, false);
+        SafeSetActive(deathPanel, false);
 
-        // Nollställ dödsinfo varje runda
-        lastKillerName = null;
-        lastKillerSprite = null;
-        if (roundEndHeader != null) roundEndHeader.text = ""; // NEW
-        if (deathInfoText != null) deathInfoText.text = "";
-        if (killerIcon != null)
-        {
-            killerIcon.enabled = false;
-            killerIcon.sprite = null;
-        }
-
-        // Spel-state
+        // Städ & reset
         Time.timeScale = 1f;
-        ClearLiveEnemies();                  // NEW – städa ev. kvarvarande fiender
-        if (playerHealth != null) playerHealth.ResetHP(); // NEW – full HP mellan rundor
+        ClearLiveEnemies();
+        if (playerHealth) playerHealth.ResetHP();
 
         // Timer
         durationSeconds = Mathf.Max(1f, seconds);
@@ -139,104 +94,107 @@ public class LevelTimer : MonoBehaviour
         UpdateTimerLabel();
 
         // Spawner
-        if (spawnerToStop != null) spawnerToStop.enabled = true;
+        if (spawnerToStop) spawnerToStop.enabled = true;
 
         onRoundStart?.Invoke();
     }
 
-    /// <summary>
-    /// Anropa denna när spelaren dör (skickar in vem som dödade + ev. sprite).
-    /// </summary>
+    /// Dödsvariant – anropas från PlayerHealth2D när spelaren dör
     public void EndRoundByDeath(string killerName, Sprite killerSprite = null)
     {
         lastKillerName = killerName;
         lastKillerSprite = killerSprite;
-        EndRound();
-    }
 
-    /// <summary>Avslutar rundan: stoppar spawner, visar UI, pausar spel – skriver orsak.</summary>
-    public void EndRound()
-    {
         isRunning = false;
+        if (spawnerToStop) spawnerToStop.enabled = false;
 
-        if (spawnerToStop != null)
-            spawnerToStop.enabled = false;
-
-        // Sätt texter
-        string secLeft = Mathf.Max(0f, timeLeft).ToString("F1");
-        if (roundEndHeader != null)
-            roundEndHeader.text = EndedByDeath ? "YOU DIED" : "ROUND COMPLETE"; // NEW
-
-        if (deathInfoText != null)
+        // Fyll DEATH-panel
+        if (deathHeader) deathHeader.text = "YOU DIED";
+        if (deathInfoText)
         {
-            if (EndedByDeath)
-                deathInfoText.text = $"You were killed by {lastKillerName}\nLevel {currentLevel} • {secLeft}s left on the clock";
-            else
-                deathInfoText.text = $"Time's up!\nLevel {currentLevel}";
+            string secLeft = Mathf.Max(0f, timeLeft).ToString("F1");
+            string who = string.IsNullOrEmpty(killerName) ? "an enemy" : killerName;
+            deathInfoText.text = $"Killed by {who}\nLevel {currentLevel} • {secLeft}s left";
         }
-
-        // Sätt ikon om vi har en
-        if (killerIcon != null)
+        if (deathKillerIcon)
         {
-            if (EndedByDeath && lastKillerSprite != null)
+            if (lastKillerSprite != null)
             {
-                killerIcon.sprite = lastKillerSprite;
-                killerIcon.enabled = true;
-                // killerIcon.SetNativeSize(); // låt UI styra storlek, kommentera in om du vill auto-sizea
+                deathKillerIcon.sprite = lastKillerSprite;
+                deathKillerIcon.enabled = true;
             }
             else
             {
-                killerIcon.enabled = false;
-                killerIcon.sprite = null;
+                deathKillerIcon.enabled = false;
+                deathKillerIcon.sprite = null;
             }
         }
 
-        // Visa rätt knappar
-        ShowButton(nextRoundButton, !EndedByDeath); // vinst → NextRound
-        ShowButton(retryButton, EndedByDeath);      // död → Retry
+        // Visa DEATH-panel (eller fallback till winPanel om deathPanel saknas)
+        if (deathPanel) SafeSetActive(deathPanel, true);
+        else if (winPanel) SafeSetActive(winPanel, true);
 
-        if (roundEndPanel != null)
-            roundEndPanel.SetActive(true);
+        // Döp knapparna rätt: Retry synlig, NextRound dold
+        SafeSetActive(deathRetryButton, true);
+        SafeSetActive(winNextButton, false);
 
         Time.timeScale = 0f;
-
         onRoundEnd?.Invoke();
     }
 
-    /// <summary>Hämtar kvarvarande tid (aldrig under 0).</summary>
-    public float GetTimeLeft() => Mathf.Max(0f, timeLeft);
-
-    // ==== UI-knappar ====
-
-    public void Retry()
+    /// Vinstvariant – kallas när timer tar slut
+    public void EndRound()
     {
-        Time.timeScale = 1f;
-        Scene current = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(current.buildIndex);
+        isRunning = false;
+        if (spawnerToStop) spawnerToStop.enabled = false;
+
+        // Fyll WIN-panel
+        if (winHeader) winHeader.text = "ROUND COMPLETE";
+        if (winInfoText) winInfoText.text = $"Level {currentLevel} complete!";
+
+        // Visa WIN-panel (fallback till deathPanel om winPanel saknas)
+        if (winPanel) SafeSetActive(winPanel, true);
+        else if (deathPanel) SafeSetActive(deathPanel, true);
+
+        // Knappar: NextRound synlig, Retry dold
+        SafeSetActive(winNextButton, true);
+        SafeSetActive(deathRetryButton, false);
+
+        Time.timeScale = 0f;
+        onRoundEnd?.Invoke();
     }
 
     public void NextRound()
     {
-        // Endast meningsfullt vid vinst (knappen är dold vid död)
         Time.timeScale = 1f;
-        currentLevel = Mathf.Max(1, currentLevel + 1); // NEW – öka level
-        float nextSeconds = durationSeconds;           // ev. skala svårighetsgrad här
-        StartRound(nextSeconds);
+        currentLevel = Mathf.Max(1, currentLevel + 1);
+        StartRound(durationSeconds);
     }
 
-    public void SetLevel(int level)
+    public void Retry()
     {
-        currentLevel = Mathf.Max(1, level);
+        Time.timeScale = 1f;
+        var sc = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(sc.buildIndex);
     }
 
-    // ==== Hjälpmetoder ====
+    // ========= Helpers =========
 
-    private void ShowButton(GameObject go, bool state) // NEW
+    private void UpdateTimerLabel()
     {
-        if (go != null) go.SetActive(state);
+        if (!timerLabel) return;
+        int t = Mathf.CeilToInt(Mathf.Max(0f, timeLeft));
+        timerLabel.text = t.ToString();
     }
 
-    private void ClearLiveEnemies() // NEW
+    private void SafeSetActive(Object obj, bool state)
+    {
+        if (!obj) return;
+        if (obj is GameObject go) go.SetActive(state);
+        else if (obj is Behaviour b) b.gameObject.SetActive(state);
+    }
+
+    private void ClearLiveEnemies()
     {
         if (string.IsNullOrEmpty(enemyTag)) return;
         var enemies = GameObject.FindGameObjectsWithTag(enemyTag);

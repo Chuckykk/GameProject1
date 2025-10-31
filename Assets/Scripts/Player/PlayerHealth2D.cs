@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;   // <- behövs för UnityEvent
+using UnityEngine.Events;
 
 public class PlayerHealth2D : MonoBehaviour
 {
@@ -10,58 +10,43 @@ public class PlayerHealth2D : MonoBehaviour
     [SerializeField] private int currentHP;
 
     [Header("Death & UI")]
-    public bool pauseOnDeath = true;
-    public GameObject roundEndPanel;      // Dra in din RoundEndPanel här
-    public UnityEvent onDeath;            // Då får du + i Inspectorn
+    [Tooltip("Låt LevelTimer sköta paus/paneler. Lämna denna false.")]
+    public bool pauseOnDeath = false;            // <- Låt LevelTimer pausa
+    [Tooltip("OBS: Används inte längre. Panel hanteras av LevelTimer.")]
+    public GameObject roundEndPanel;             // <- Lämnas orörd/ignoreras
+    public UnityEvent onDeath;                   // + i Inspectorn
 
     [Header("Optional: Disable on death")]
-    public Behaviour[] disableOnDeath;    // T.ex. rörelse/skjutscript
+    public Behaviour[] disableOnDeath;           // T.ex. rörelse/skjutscript
 
     [Header("Optional: Call LevelTimer")]
-    public LevelTimer levelTimer;         // Dra in LevelTimer (RoundManager)
+    public LevelTimer levelTimer;                // Dra in LevelTimer (RoundManager). Hittas auto om tomt.
 
-    private bool isDead = false;          // NEW – håller koll på om spelaren är död
+    // Internt state
+    private bool isDead = false;
+
+    // (Valfritt) Om en angripare vill skicka med ett ikon-sprite
     private string pendingKillerName;
-private Sprite pendingKillerSprite;
-public void MarkKiller(string name, Sprite icon = null) { pendingKillerName = name; pendingKillerSprite = icon; }
+    private Sprite pendingKillerSprite;
+    public void MarkKiller(string name, Sprite icon = null)
+    {
+        pendingKillerName = name;
+        pendingKillerSprite = icon;
+    }
 
     private void Awake()
     {
         currentHP = maxHP;
-        if (roundEndPanel != null) 
+
+        // Dölj ev. gammal panel om den råkat ligga kvar
+        if (roundEndPanel != null)
             roundEndPanel.SetActive(false);
+
+        // Auto-fallback för LevelTimer om inte satt i Inspector
+        if (levelTimer == null)
+            levelTimer = FindObjectOfType<LevelTimer>();
     }
 
-    public void TakeDamage(int amount)
-    {
-        if (isDead) return;               // NEW – förhindra dubbel-död
-
-        currentHP = Mathf.Max(0, currentHP - amount);
-        if (currentHP <= 0)
-            Die();
-    }
-
-private void Die()
-{
-    isDead = true;
-
-    if (disableOnDeath != null)
-        foreach (var b in disableOnDeath) if (b) b.enabled = false;
-
-    // INTE: if (roundEndPanel) roundEndPanel.SetActive(true);
-
-    // ✅ VIKTIGT – kalla LevelTimer på RoundManager:
-    if (levelTimer)
-        levelTimer.EndRoundByDeath("an enemy", null); // eller din riktiga fiendenamn/ikon
-
-    if (pauseOnDeath) Time.timeScale = 0f;
-
-    onDeath?.Invoke();
-}
-
-
-    // === NYTT ===
-    /// <summary>Återställ spelarens HP och återaktivera komponenter mellan rundor.</summary>
     public void ResetHP()
     {
         currentHP = maxHP;
@@ -74,14 +59,59 @@ private void Die()
                 if (b) b.enabled = true;
         }
 
-        // Dölj eventuell RoundEnd-panel om den råkar vara kvar
+        // Dölj ev. panel (LevelTimer visar/döljer egentligen)
         if (roundEndPanel)
             roundEndPanel.SetActive(false);
 
-        // Se till att spelet fortsätter
+        // Låt LevelTimer styra Time.timeScale, men detta skadar inte mellan rundor
         Time.timeScale = 1f;
+
+        // Nollställ ev. pending killer för nästa runda
+        pendingKillerName = null;
+        pendingKillerSprite = null;
     }
 
-    // Valfritt kortkommando om du vill heala utan full reset
     public void HealToFull() => currentHP = maxHP;
+
+    public void TakeDamage(int amount)
+    {
+        if (isDead) return;
+
+        currentHP = Mathf.Max(0, currentHP - Mathf.Max(0, amount));
+        if (currentHP <= 0)
+            Die();
+    }
+
+    private void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        // Stäng av kontroller/systems om du vill
+        if (disableOnDeath != null)
+        {
+            foreach (var b in disableOnDeath)
+                if (b) b.enabled = false;
+        }
+
+        // Ta fram rätt killer-namn:
+        // 1) Om någon kallat MarkKiller() (med ev. sprite) – använd det.
+        // 2) Annars använd DeathContext.KillerName (sätts av projektil/melee).
+        string killer =
+            !string.IsNullOrEmpty(pendingKillerName) ? pendingKillerName :
+            (!string.IsNullOrEmpty(DeathContext.KillerName) ? DeathContext.KillerName : "an enemy");
+
+        // Låt LevelTimer hantera panel, text och paus
+        if (levelTimer != null)
+        {
+            levelTimer.EndRoundByDeath(killer, pendingKillerSprite);
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerHealth2D] LevelTimer saknas – kan inte visa Death-panel.");
+            if (pauseOnDeath) Time.timeScale = 0f; // fallback om du verkligen vill pausa här
+        }
+
+        onDeath?.Invoke();
+    }
 }
