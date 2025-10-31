@@ -28,10 +28,13 @@ public class PlayerShooting2D : MonoBehaviour
 
         // // Kontrollera cooldown
         if (firePressed && Time.time >= _nextFireTime)
+
         {
             Shoot();                                         // // Skjut kula
             _nextFireTime = Time.time + fireRate;            // // Starta om cooldown
         }
+        
+        
     }
 
     private void Shoot()
@@ -40,7 +43,7 @@ public class PlayerShooting2D : MonoBehaviour
 
         // // Skapa kula på firePoint-position med samma rotation
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
-
+        AudioManager.Play("shoot");
         // // Hämta rigidbody
         Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
         if (rb != null)
