@@ -1,11 +1,9 @@
 fileFormatVersion: 2
-guid: 51edc2b9f96d3f8429edbe616c9b810b
+guid: 711a27535bf220e408465942a39c2808
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences:
-  - roundEndPanel: {fileID: 100000, guid: fdad9d952ae84cafb74c63f2e694d042, type: 3}
-  - levelTimer: {instanceID: 0}
+  defaultReferences: []
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

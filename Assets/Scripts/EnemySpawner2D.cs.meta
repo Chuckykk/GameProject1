@@ -4,8 +4,9 @@ MonoImporter:
   externalObjects: {}
   serializedVersion: 2
   defaultReferences:
-  - player: {fileID: 7878350319992209165, guid: 8b82a4ed5f99a61429d3d54b93f4c172, type: 3}
-  - enemyPrefab: {fileID: 3856413609822355933, guid: 7739800ce4684554ca8d8ea2ac857c85, type: 3}
+  - player: {fileID: 6522989494304206694, guid: 95c4ca4f8e273c345a4193bd32e18564, type: 3}
+  - enemyMeleePrefab: {instanceID: 0}
+  - enemyRangedPrefab: {instanceID: 0}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

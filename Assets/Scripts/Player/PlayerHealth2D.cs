@@ -18,39 +18,70 @@ public class PlayerHealth2D : MonoBehaviour
     public Behaviour[] disableOnDeath;    // T.ex. rörelse/skjutscript
 
     [Header("Optional: Call LevelTimer")]
-    public LevelTimer levelTimer;         // Dra in RoundManager (LevelTimer)
+    public LevelTimer levelTimer;         // Dra in LevelTimer (RoundManager)
+
+    private bool isDead = false;          // NEW – håller koll på om spelaren är död
+    private string pendingKillerName;
+private Sprite pendingKillerSprite;
+public void MarkKiller(string name, Sprite icon = null) { pendingKillerName = name; pendingKillerSprite = icon; }
 
     private void Awake()
     {
         currentHP = maxHP;
-        if (roundEndPanel != null) roundEndPanel.SetActive(false);
+        if (roundEndPanel != null) 
+            roundEndPanel.SetActive(false);
     }
 
     public void TakeDamage(int amount)
     {
+        if (isDead) return;               // NEW – förhindra dubbel-död
+
         currentHP = Mathf.Max(0, currentHP - amount);
-        if (currentHP <= 0) Die();
+        if (currentHP <= 0)
+            Die();
     }
 
-    private void Die()
+private void Die()
+{
+    isDead = true;
+
+    if (disableOnDeath != null)
+        foreach (var b in disableOnDeath) if (b) b.enabled = false;
+
+    // INTE: if (roundEndPanel) roundEndPanel.SetActive(true);
+
+    // ✅ VIKTIGT – kalla LevelTimer på RoundManager:
+    if (levelTimer)
+        levelTimer.EndRoundByDeath("an enemy", null); // eller din riktiga fiendenamn/ikon
+
+    if (pauseOnDeath) Time.timeScale = 0f;
+
+    onDeath?.Invoke();
+}
+
+
+    // === NYTT ===
+    /// <summary>Återställ spelarens HP och återaktivera komponenter mellan rundor.</summary>
+    public void ResetHP()
     {
-        // Stäng av valda komponenter (rörelse/skjut)
+        currentHP = maxHP;
+        isDead = false;
+
+        // Återaktivera komponenter som stängdes vid död
         if (disableOnDeath != null)
         {
-            foreach (var b in disableOnDeath) if (b) b.enabled = false;
+            foreach (var b in disableOnDeath)
+                if (b) b.enabled = true;
         }
 
-        // Visa panel
-        if (roundEndPanel) roundEndPanel.SetActive(true);
+        // Dölj eventuell RoundEnd-panel om den råkar vara kvar
+        if (roundEndPanel)
+            roundEndPanel.SetActive(false);
 
-        // Stoppa runda/spawns via LevelTimer (återanvänd samma panelflöde)
-        if (levelTimer) levelTimer.EndRound();
-
-        if (pauseOnDeath) Time.timeScale = 0f;
-
-        onDeath?.Invoke();
+        // Se till att spelet fortsätter
+        Time.timeScale = 1f;
     }
 
-    // Valfritt
+    // Valfritt kortkommando om du vill heala utan full reset
     public void HealToFull() => currentHP = maxHP;
 }
