@@ -3,7 +3,9 @@ guid: 823d08031a9236440ae432ddef915d34
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - xpOrbPrefab: {fileID: 1085476571527127832, guid: a82e6470b9294ac4eaeabec8187b0f54, type: 3}
+  - explosionPrefab: {fileID: 8644253600061102363, guid: 3c3672afdc8cae54a9d9ec068150087a, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

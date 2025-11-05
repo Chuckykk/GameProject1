@@ -155,6 +155,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 823d08031a9236440ae432ddef915d34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  xpOrbPrefab: {fileID: 1085476571527127832, guid: a82e6470b9294ac4eaeabec8187b0f54, type: 3}
+  minOrbs: 1
+  maxOrbs: 2
   maxHP: 2
   explosionPrefab: {fileID: 8644253600061102363, guid: 3c3672afdc8cae54a9d9ec068150087a, type: 3}
 --- !u!60 &3709347200077610751

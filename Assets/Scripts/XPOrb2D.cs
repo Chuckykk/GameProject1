@@ -1,32 +1,49 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(Collider2D))]
 public class XPOrb2D : MonoBehaviour
 {
+    [Header("XP-värde")]
     [Min(1)] public int xpValue = 1;
+
     [Header("Magnet (valfritt)")]
-    public float magnetRange = 3f;
-    public float magnetSpeed = 6f;
+    public float magnetRange = 3f;     // hur nära spelaren orben börjar dras
+    public float magnetSpeed = 6f;     // hastighet på draget
 
-    private Transform _player;
+    private Transform player;
+    private PlayerXP2D playerXP;
 
-    void Start()
+    private void Start()
     {
-        var player = GameObject.FindGameObjectWithTag("Player");
-        if (player) _player = player.transform;
+        // Hitta spelaren automatiskt via tag
+        GameObject pObj = GameObject.FindGameObjectWithTag("Player");
+        if (pObj != null)
+        {
+            player = pObj.transform;
+            playerXP = pObj.GetComponent<PlayerXP2D>();
+        }
+        else
+        {
+            Debug.LogWarning("[XPOrb2D] Hittar ingen spelare med tag 'Player'.");
+        }
+
+        // Se till att collidern är trigger
+        var col = GetComponent<Collider2D>();
+        if (col != null) col.isTrigger = true;
     }
 
-    void Update()
+    private void Update()
     {
-        if (_player == null) return;
+        if (player == null) return;
 
-        float d = Vector2.Distance(transform.position, _player.position);
-        if (d <= magnetRange)
+        float distance = Vector2.Distance(transform.position, player.position);
+
+        // Om spelaren är inom magnetisk radie → dra orben mot spelaren
+        if (distance <= magnetRange)
         {
             transform.position = Vector2.MoveTowards(
                 transform.position,
-                _player.position,
+                player.position,
                 magnetSpeed * Time.deltaTime
             );
         }
@@ -36,9 +53,15 @@ public class XPOrb2D : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
 
-        var xp = other.GetComponent<PlayerXP2D>();
-        if (xp != null)
+        // Om vi redan har referensen till PlayerXP2D, använd den
+        if (playerXP != null)
+        {
+            playerXP.AddXP(xpValue);
+        }
+        else if (other.TryGetComponent(out PlayerXP2D xp))
+        {
             xp.AddXP(xpValue);
+        }
 
         Destroy(gameObject);
     }

@@ -1,55 +1,63 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+[DisallowMultipleComponent]
 public class PlayerShooting2D : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private Transform firePoint;            // // Där kulan skjuts från (barn till AimPivot)
-    [SerializeField] private GameObject bulletPrefab;        // // Prefab att skjuta (måste ha Rigidbody2D)
-    
+    [SerializeField] private Transform firePoint;      // Där kulan skjuts från
+    [SerializeField] private GameObject bulletPrefab;  // Prefab att skjuta
+
     [Header("Shooting Settings")]
-    [SerializeField] private float bulletSpeed = 12f;        // // Hur snabbt kulorna flyger
-    [SerializeField] private float fireRate = 0.2f;          // // Tid mellan skott (0.2 = 5 skott/sek)
-    [SerializeField] private bool autoFire = true;           // // Håll in musknappen för automatisk eld
+    [SerializeField] public float bulletSpeed = 12f;  // Hur snabbt kulorna flyger
+    [SerializeField] public float fireRate = 0.2f;    // Tid mellan skott (0.2 = 5 skott/sek)
+    [SerializeField] public int damage = 1;           // Grundskada per skott
+    [SerializeField] private bool autoFire = true;     // Håll in musknappen för automatisk eld
 
-    private float _nextFireTime;                             // // Timer för skottintervall
-    private Camera _cam;                                     // // För att läsa musposition
+    private float _nextFireTime;
 
-    private void Awake()
+    // === Publica egenskaper (så UpgradeOption kan ändra dessa) ===
+    public float FireRate
     {
-        _cam = Camera.main;                                 // // Hämta kamera för säkerhets skull
+        get => fireRate;
+        set => fireRate = Mathf.Clamp(value, 0.02f, 2f); // skydda mot för låga värden
+    }
+
+    public int Damage
+    {
+        get => damage;
+        set => damage = Mathf.Max(0, value);
     }
 
     private void Update()
     {
-        // // Vänster musknapp skjuter
         bool firePressed = autoFire ? Input.GetMouseButton(0) : Input.GetMouseButtonDown(0);
 
-        // // Kontrollera cooldown
         if (firePressed && Time.time >= _nextFireTime)
-
         {
-            Shoot();                                         // // Skjut kula
-            _nextFireTime = Time.time + fireRate;            // // Starta om cooldown
+            Shoot();
+            _nextFireTime = Time.time + fireRate;
         }
-        
-        
     }
 
     private void Shoot()
     {
         if (firePoint == null || bulletPrefab == null) return;
 
-        // // Skapa kula på firePoint-position med samma rotation
+        // Skapa kulan
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+
+        // Spela ljud
         AudioManager.Play("shoot");
-        // // Hämta rigidbody
-        Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            // // Skicka iväg den i riktningen firePoint pekar
+
+        // Skicka iväg kulan i rätt riktning
+        if (bullet.TryGetComponent<Rigidbody2D>(out var rb))
             rb.velocity = firePoint.right * bulletSpeed;
-        }
+
+        // --- Valfritt ---
+        // Om du senare vill ge kulor damage, lägg till ett script "PlayerBullet2D"
+        // och avkommentera dessa rader:
+        //
+        // if (bullet.TryGetComponent<PlayerBullet2D>(out var proj))
+        //     proj.damage = damage;
     }
 }

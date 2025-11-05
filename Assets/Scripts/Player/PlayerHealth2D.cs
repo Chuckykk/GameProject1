@@ -9,6 +9,15 @@ public class PlayerHealth2D : MonoBehaviour
     public int maxHP = 5;
     [SerializeField] private int currentHP;
 
+    // === NYTT: Event + getters som HPBarUI2D förväntar sig ===
+    [Header("Events (HP UI)")]
+    // HPBarUI2D lyssnar på: (current, max)
+    public UnityEvent<int, int> OnHPChanged = new UnityEvent<int, int>();
+
+    public int MaxHP => maxHP;
+    public int CurrentHP => currentHP;
+    // ========================================================
+
     [Header("Death & UI")]
     [Tooltip("Låt LevelTimer sköta paus/paneler. Lämna denna false.")]
     public bool pauseOnDeath = false;            // <- Låt LevelTimer pausa
@@ -34,6 +43,12 @@ public class PlayerHealth2D : MonoBehaviour
         pendingKillerSprite = icon;
     }
 
+    public void Heal(int amount)
+{
+    currentHP = Mathf.Clamp(currentHP + amount, 0, maxHP);
+    // TODO: om du har HP-bar: anropa din UI-uppdatering här
+}
+
     private void Awake()
     {
         currentHP = maxHP;
@@ -45,6 +60,9 @@ public class PlayerHealth2D : MonoBehaviour
         // Auto-fallback för LevelTimer om inte satt i Inspector
         if (levelTimer == null)
             levelTimer = FindObjectOfType<LevelTimer>();
+
+        // === NYTT: Skicka initial status till HPBar ===
+        RaiseHPChanged();
     }
 
     public void ResetHP()
@@ -69,15 +87,27 @@ public class PlayerHealth2D : MonoBehaviour
         // Nollställ ev. pending killer för nästa runda
         pendingKillerName = null;
         pendingKillerSprite = null;
+
+        // === NYTT: UI-uppdatering ===
+        RaiseHPChanged();
     }
 
-    public void HealToFull() => currentHP = maxHP;
+    public void HealToFull()
+    {
+        currentHP = maxHP;
+        // === NYTT: UI-uppdatering ===
+        RaiseHPChanged();
+    }
 
     public void TakeDamage(int amount)
     {
         if (isDead) return;
 
         currentHP = Mathf.Max(0, currentHP - Mathf.Max(0, amount));
+
+        // === NYTT: UI-uppdatering ===
+        RaiseHPChanged();
+
         if (currentHP <= 0)
             Die();
     }
@@ -113,5 +143,21 @@ public class PlayerHealth2D : MonoBehaviour
         }
 
         onDeath?.Invoke();
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        // Håll värden rimliga i editorn
+        maxHP = Mathf.Max(1, maxHP);
+        currentHP = Mathf.Clamp(currentHP, 0, maxHP);
+        // Obs: vi ropar inte RaiseHPChanged här för att undvika event i editorn.
+    }
+#endif
+
+    // === NYTT: Hjälpmetod för att meddela UI ===
+    private void RaiseHPChanged()
+    {
+        OnHPChanged?.Invoke(currentHP, maxHP);
     }
 }
