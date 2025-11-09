@@ -359,10 +359,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53266bcc253b08f47968bfa2f3acb5c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  health: {fileID: 0}
-  move: {fileID: 0}
-  shooting: {fileID: 0}
-  xp: {fileID: 0}
+  health: {fileID: 4371817483968723729}
+  move: {fileID: 4843033631774529881}
+  shooting: {fileID: 6593133278816911108}
+  xp: {fileID: -9158635669158482320}
 --- !u!4 &6522989494304206694 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7878350319992209165, guid: 8b82a4ed5f99a61429d3d54b93f4c172, type: 3}
