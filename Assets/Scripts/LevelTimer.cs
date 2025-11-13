@@ -19,6 +19,8 @@ public class LevelTimer : MonoBehaviour
     public TMP_Text timerLabel;
     public MonoBehaviour spawnerToStop;
 
+    
+
     [Header("WIN Panel (RoundEndPanel)")]
     [Tooltip("Panel som visas när rundan KLARAS.")]
     public GameObject winPanel;                          // <- NYTT namn
@@ -46,6 +48,8 @@ public class LevelTimer : MonoBehaviour
     private bool isRunning;
     private string lastKillerName = null;
     private Sprite lastKillerSprite = null;
+
+
 
     private void Start()
     {
@@ -75,6 +79,8 @@ public class LevelTimer : MonoBehaviour
     }
 
     // ========= API =========
+
+    
 
     public void StartRound(float seconds)
     {
@@ -164,12 +170,26 @@ public class LevelTimer : MonoBehaviour
         onRoundEnd?.Invoke();
     }
 
-    public void NextRound()
+// --- i LevelTimer class ---
+[SerializeField] private string nextSceneName = "";   // sätt i Inspectorn
+[SerializeField] private bool useBuildIndexIfEmpty = true;
+
+public void NextRound()
+{
+    // återställ paus om du pausar på win
+    Time.timeScale = 1f;
+
+    if (!string.IsNullOrEmpty(nextSceneName))
     {
-        Time.timeScale = 1f;
-        currentLevel = Mathf.Max(1, currentLevel + 1);
-        StartRound(durationSeconds);
+        SceneManager.LoadScene(nextSceneName);
     }
+    else if (useBuildIndexIfEmpty)
+    {
+        var i = SceneManager.GetActiveScene().buildIndex;
+        SceneManager.LoadScene(i + 1);
+    }
+    // annars gör inget (skydd om du råkar klicka utan konfig)
+}
 
     public void Retry()
     {
