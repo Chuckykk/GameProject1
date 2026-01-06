@@ -71,17 +71,14 @@ public class PlayerXP2D : MonoBehaviour
     /// <summary>
     /// En (1) level-up: öka level, räkna fram nytt krav och trigga event.
     /// </summary>
-    private void LevelUpOnce()
-    {
-        level = Mathf.Max(1, level + 1);
-        xpToNext = GetXPNeededForLevel(level);
-
-        // Meddela UI (frivilligt att lyssna här också)
-        OnXPChanged?.Invoke(currentXP, xpToNext, level);
-
-        // UnityEvent för att öppna perk-panel etc.
-        onLevelUp?.Invoke();
-    }
+   private void LevelUpOnce()
+{
+    Debug.Log($"[XP] LEVEL UP → Ny nivå: {level + 1}");
+    level = Mathf.Max(1, level + 1);
+    xpToNext = GetXPNeededForLevel(level);
+    OnXPChanged?.Invoke(currentXP, xpToNext, level);
+    onLevelUp?.Invoke();
+}
 
     /// <summary>
     /// Enkel exponentiell kurva: base * growth^(level-1).
